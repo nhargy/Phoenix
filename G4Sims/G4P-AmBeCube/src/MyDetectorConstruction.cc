@@ -7,45 +7,169 @@ MyDetectorConstruction::MyDetectorConstruction() {
 MyDetectorConstruction::~MyDetectorConstruction() {
 };
 
+/*
+G4VPhysicalVolume *MyDetectorConstruction::Construct() {
+
+    DefineGeometryParameters();
+    DefineMaterials();
+    ConstructLab();
+    ConstructFrame();
+    ConstructWheel();
+    ConstructSourceShield();
+    ConstructCrystals();
+    ConstructModerators();
+
+    return physWorld;
+} */
+
+void MyDetectorConstruction::DefineGeoParams() {
+
+    // ======= Lab ======= //
+    m_hGeoParams["xWorld"] = 100. *cm;
+    m_hGeoParams["yWorld"] = 100. *cm;
+    m_hGeoParams["zWorld"] = 200. *cm;
+
+    m_hGeoParams["zFloor"] =  20. *cm;
+
+    // ======= Profiles ======= //
+    m_hGeoParams["xProfile"]      =  4. *cm;
+    m_hGeoParams["yProfile"]      =  4. *cm;
+    m_hGeoParams["zProfileLong"]  = 99. *cm;
+    m_hGeoParams["zProfileShort"] = 30. *cm;
+
+    // ======= Wheel ======= //
+    m_hGeoParams["oRadWheel"]  = 15.   *cm;
+    m_hGeoParams["iRadWheel"]  = 12.   *cm;
+    m_hGeoParams["zWheel"]     =  0.05 *cm;
+
+    m_hGeoParams["wSpoke"] = 2. *cm;
+
+    m_hGeoParams["zPaper"] = 0.01 *cm;
+
+    // ======= Source Shield ======= //
+    m_hGeoParams["oRadSourceShield"] = 3.35 *cm;
+    m_hGeoParams["iRadSourceShield"] = 2.85 *cm;
+    m_hGeoParams["zSourceShield"]    = 5.2  *cm;
+    m_hGeoParams["zPlug"]            = 0.85 *cm;
+
+    // ======= Cubes ======= //
+    m_hGeoParams["xCube"] = 1. *cm;
+    m_hGeoParams["yCube"] = 1. *cm;
+    m_hGeoParams["zCube"] = 1. *cm;
+
+    m_hGeoParams["RadCubeSource"] = 10. *cm;
+};
+
 void MyDetectorConstruction::DefineMaterials() {
 
     G4NistManager *nist = G4NistManager::Instance();
+
+    Air          = nist->FindOrBuildMaterial("G4_AIR");
+    LiF          = nist->FindOrBuildMaterial("G4_LITHIUM_FLUORIDE");
+    Al           = nist->FindOrBuildMaterial("G4_Al");
+    Water        = nist->FindOrBuildMaterial("G4_WATER");
+    Pb           = nist->FindOrBuildMaterial("G4_Pb");
+    Concrete     = nist->FindOrBuildMaterial("G4_CONCRETE");
+    Polyethylene = nist->FindOrBuildMaterial("G4_POLYETHYLENE");
+
     
-    Air = nist->FindOrBuildMaterial("G4_AIR");
+    // Build paper: wood-based paper roughly C₆H₁₀O₅ (cellulose)
+    C = nist->FindOrBuildElement("C");
+    H = nist->FindOrBuildElement("H");
+    O = nist->FindOrBuildElement("O");
 
-    LiF = nist->FindOrBuildMaterial("G4_LITHIUM_FLUORIDE");
-
-    Cadmium = nist->FindOrBuildMaterial("G4_Cd");
-
-    Al = nist->FindOrBuildMaterial("G4_Al");
-
-    Water = nist->FindOrBuildMaterial("G4_WATER");
-
-    Pb = nist->FindOrBuildMaterial("G4_Pb");
-       
-    Concrete = nist->FindOrBuildMaterial("G4_CONCRETE");
-
-    Paraffin = nist->FindOrBuildMaterial("G4_POLYETHYLENE");
-
-    // @@@ CHATGPT @@@
-    G4Element*  C = nist->FindOrBuildElement("C");
-    G4Element*  H = nist->FindOrBuildElement("H");
-    G4Element*  O = nist->FindOrBuildElement("O");
-    
-    // Example composition: wood-based paper roughly C₆H₁₀O₅ (cellulose) 
     Paper = new G4Material("Paper", 0.8*g/cm3, 3);
     Paper->AddElement(C, 6);
     Paper->AddElement(H,10);
     Paper->AddElement(O, 5);
-    // @@@ @@@ @@@ @@@ @@@
 };
+
+void MyDetectorConstruction::ConstructLab() {
+    
+    // **** Build World ****************************************************
+    G4double xWorld = m_hGeoParams["xWorld"];
+    G4double yWorld = m_hGeoParams["yWorld"];
+    G4double zWorld = m_hGeoParams["zWorld"];
+
+    G4double xPosWorld = 0.*cm;
+    G4double yPosWorld = 0.*cm;
+    G4double zPosWorld = 0.*cm;
+
+    auto vecWorld = G4ThreeVector(xPosWorld, yPosWorld, zPosWorld);
+
+    solidWorld = new G4Box("solidWorld",
+                           xWorld/2,
+                           yWorld/2,
+                           zWorld/2
+                        );
+
+    logicWorld = new G4LogicalVolume(solidWorld,
+                                    Air,
+                                    "logicWorld"
+                                );
+
+    physWorld  = new G4PVPlacement(0,
+                                   vecWorld,
+                                   logicWorld,
+                                   "physWorld",
+                                   0,
+                                   false,
+                                   0,
+                                   true
+                                );
+
+    // **** Build Floor ****************************************************
+    G4double xFloor = xWorld;
+    G4double yFloor = yWorld;
+    G4double zFloor = m_hGeoParams["zFloor"];
+
+    G4double xPosFloor = 0.*cm;
+    G4double yPosFloor = 0.*cm;
+    G4double zPosFloor = (-zWorld/2 + zFloor/2);
+    
+    auto vecFloor = G4ThreeVector(xPosFloor, yPosFloor, zPosFloor);    
+
+    solidFloor = new G4Box("solidFloor",
+                           xFloor/2,
+                           yFloor/2,
+                           zFloor/2
+                        );
+
+    logicFloor = new G4LogicalVolume(solidFloor,
+                                    Concrete,
+                                    "logicFloor"
+                                );
+
+    physFloor  = new G4PVPlacement(0,
+                                   vecFloor,
+                                   logicFloor,
+                                   "physFloor",
+                                   logicWorld,
+                                   false,
+                                   0,
+                                   true
+                                ); 
+    
+    /* Colours & Styling */
+    auto colFloor = G4Colour(0.5, 0.5, 0.5);
+    G4VisAttributes *visAttributesFloor = new G4VisAttributes(colFloor);
+    visAttributesFloor->SetVisibility(true);
+    visAttributesFloor->SetForceSolid(true);
+    logicFloor->SetVisAttributes(visAttributesFloor);
+};
+
+void MyDetectorConstruction::ConstructFrame() {
+
+    
+
+}
 
 G4VPhysicalVolume *MyDetectorConstruction::Construct() {
     
     // **** Build World ****************************************************
-    G4double xWorld = 50.*cm;
-    G4double yWorld = 50.*cm;
-    G4double zWorld = 100.*cm;
+    G4double xWorld = 100.*cm;
+    G4double yWorld = 100.*cm;
+    G4double zWorld = 200.*cm;
 
     G4double xWorldPos = 0.*cm;
     G4double yWorldPos = 0.*cm;
@@ -53,15 +177,16 @@ G4VPhysicalVolume *MyDetectorConstruction::Construct() {
     
     auto WorldVector = G4ThreeVector(xWorldPos, yWorldPos, zWorldPos);    
 
-
     solidWorld = new G4Box("solidWorld",
-                           xWorld,
-                           yWorld,
-                           zWorld); 
+                           xWorld/2,
+                           yWorld/2,
+                           zWorld/2
+                        ); 
 
     logicWorld = new G4LogicalVolume(solidWorld,
                                     Air,
-                                    "logicWorld");
+                                    "logicWorld"
+                                );
 
     physWorld  = new G4PVPlacement(0,
                                    WorldVector,
@@ -70,29 +195,32 @@ G4VPhysicalVolume *MyDetectorConstruction::Construct() {
                                    0,
                                    false,
                                    0,
-                                   true); 
+                                   true
+                                ); 
     // *********************************************************************
 
 
     // **** Build Floor ****************************************************
     G4double xFloor = xWorld;
     G4double yFloor = yWorld;
-    G4double zFloor = 10.*cm;
+    G4double zFloor = 20.*cm;
 
     G4double xFloorPos = 0.*cm;
     G4double yFloorPos = 0.*cm;
-    G4double zFloorPos = (-zWorld + zFloor);
+    G4double zFloorPos = (-zWorld/2 + zFloor/2);
     
     auto FloorVector = G4ThreeVector(xFloorPos, yFloorPos, zFloorPos);    
 
     solidFloor = new G4Box("solidFloor",
-                           xFloor,
-                           yFloor,
-                           zFloor); 
+                           xFloor/2,
+                           yFloor/2,
+                           zFloor/2
+                        );
 
     logicFloor = new G4LogicalVolume(solidFloor,
                                     Concrete,
-                                    "logicFloor");
+                                    "logicFloor"
+                                );
 
     physFloor  = new G4PVPlacement(0,
                                    FloorVector,
@@ -101,32 +229,33 @@ G4VPhysicalVolume *MyDetectorConstruction::Construct() {
                                    logicWorld,
                                    false,
                                    0,
-                                   true); 
+                                   true
+                                ); 
     
     /* Colours & Styling */
-    G4VisAttributes* visAttributesFloor = new G4VisAttributes(G4Colour(0.5, 0.5, 0.5));
+    auto colFloor = G4Colour(0.5, 0.5, 0.5);
+    G4VisAttributes *visAttributesFloor = new G4VisAttributes(colFloor);
     visAttributesFloor->SetVisibility(true);
     visAttributesFloor->SetForceSolid(true);
     logicFloor->SetVisAttributes(visAttributesFloor);
-
     // *********************************************************************
 
 
     // **** Build Profile  *************************************************
-    G4double xProfile = 2*cm;
-    G4double yProfile = 2*cm;
-    G4double zProfile = 49.5*cm;
+    G4double xProfile = 4. *cm;
+    G4double yProfile = 4. *cm;
+    G4double zProfile = 99.*cm;
 
     G4double xProfilePos = 0.*cm;
     G4double yProfilePos = 0.*cm;
-    G4double zProfilePos = (-zWorld + 2*zFloor + zProfile);
+    G4double zProfilePos = (-zWorld/2 + zFloor + zProfile/2);
     
     auto ProfileVector = G4ThreeVector(xProfilePos, yProfilePos, zProfilePos);    
 
     solidProfile = new G4Box("solidProfile",
-                           xProfile,
-                           yProfile,
-                           zProfile); 
+                           xProfile/2,
+                           yProfile/2,
+                           zProfile/2); 
 
     logicProfile = new G4LogicalVolume(solidProfile,
                                     Al,
