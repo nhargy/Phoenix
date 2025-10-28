@@ -1,0 +1,4 @@
+/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-CoCsCube/build/CMakeFiles/CoCsCubeEXE.dir
+/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-CoCsCube/build/CMakeFiles/CoCsCube.dir
+/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-CoCsCube/build/CMakeFiles/edit_cache.dir
+/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-CoCsCube/build/CMakeFiles/rebuild_cache.dir
