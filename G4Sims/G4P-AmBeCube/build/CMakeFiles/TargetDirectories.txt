@@ -1,4 +1,0 @@
-/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-AmBeCube/build/CMakeFiles/AmBeCube-EXE.dir
-/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-AmBeCube/build/CMakeFiles/G4P-AmBeCube.dir
-/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-AmBeCube/build/CMakeFiles/edit_cache.dir
-/home/hargy/Scientific/Projects/Colour-Centres/Phoenix/G4Sims/G4P-AmBeCube/build/CMakeFiles/rebuild_cache.dir
