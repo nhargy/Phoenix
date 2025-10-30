@@ -17,8 +17,10 @@
 #include "G4Colour.hh"
 #include "G4VisAttributes.hh"
 
-#include "MyDetectorConstruction.hh"
 #include "MySensitiveDetector.hh"
+
+using std::vector;
+using std::map;
 
 class MyDetectorConstruction : public G4VUserDetectorConstruction {
     public:
@@ -31,14 +33,18 @@ class MyDetectorConstruction : public G4VUserDetectorConstruction {
 
         static map<G4String, G4double> m_hGeoParams;
 
+        G4bool usePLYWheel  = true;  // default
+        G4bool usePLYBlocks = true;  // default
+
         void DefineGeoParams();
         void DefineMaterials();
         void ConstructLab();
         void ConstructFrame();
         void ConstructWheel();
+        void ConstructPLYWheel();
         void ConstructSourceShield();
         void ConstructCrystals();
-        void ConstructModerators();
+        void ConstructPLYBlocks();
 
         virtual void ConstructSDandField();
                     
@@ -48,9 +54,11 @@ class MyDetectorConstruction : public G4VUserDetectorConstruction {
         /* Declarations: Solid Volumes*/
         G4Box *solidWorld,
               *solidFloor,
-              *solidCube;
+              *solidCrystal,
+              *solidPLYBlock;
 
-        G4Tubs *solidSourceShield;
+        G4Tubs *solidSourceShield,
+               *solidPLYWheel;
 
         G4VSolid *solidFrame,
                  *solidWheel;
@@ -58,18 +66,26 @@ class MyDetectorConstruction : public G4VUserDetectorConstruction {
         /* Declarations: Logical Volumes*/
         G4LogicalVolume *logicWorld, 
                         *logicFloor,
-                        *logicCube,
+                        *logicCrystal,
                         *logicSourceShield,
                         *logicFrame,
-                        *logicWheel;
+                        *logicWheel,
+                        *logicPLYWheel,
+                        *logicPLYBlock;
 
         /* Declarations: Physical Volumes*/
         G4VPhysicalVolume *physWorld, 
                           *physFloor,
-                          *physCube,
                           *physSourceShield,
                           *physFrame,
-                          *physWheel;
+                          *physWheel,
+                          *physPLYWheel,
+                          *physPLYBlock1,
+                          *physPLYBlock2,
+                          *physCrystal0,
+                          *physCrystal1,
+                          *physCrystal2,
+                          *physCrystal3;
 
         // Material definitions
         G4Element *C,

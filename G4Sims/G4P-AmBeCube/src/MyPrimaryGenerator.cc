@@ -40,7 +40,7 @@ MyPrimaryGenerator::MyPrimaryGenerator(){
     G4ParticleDefinition* neutron = particleTable->FindParticle("neutron");
     fNeutronGun->SetParticleDefinition(neutron);
 
-    G4ThreeVector pos(0.,0.,21.5*cm);
+    G4ThreeVector pos(0.,0.,23*cm);
     fNeutronGun->SetParticlePosition(pos);
 
     // Define gamma

@@ -1,26 +1,36 @@
 #include "MyDetectorConstruction.hh"
 
+map<G4String, G4double> MyDetectorConstruction::m_hGeoParams;
+
 MyDetectorConstruction::MyDetectorConstruction() {
-    DefineMaterials();
 };
 
 MyDetectorConstruction::~MyDetectorConstruction() {
 };
 
-/*
+
 G4VPhysicalVolume *MyDetectorConstruction::Construct() {
 
-    DefineGeometryParameters();
+    DefineGeoParams();
     DefineMaterials();
     ConstructLab();
     ConstructFrame();
-    ConstructWheel();
+
+    if (usePLYWheel) {
+        ConstructPLYWheel();
+    } else {
+        ConstructWheel();
+    }
+
+    if (usePLYBlocks) {
+        ConstructPLYBlocks();
+    }
+    
     ConstructSourceShield();
     ConstructCrystals();
-    ConstructModerators();
 
     return physWorld;
-} */
+}
 
 void MyDetectorConstruction::DefineGeoParams() {
 
@@ -46,18 +56,28 @@ void MyDetectorConstruction::DefineGeoParams() {
 
     m_hGeoParams["zPaper"] = 0.01 *cm;
 
+    // ======= PLY Wheel ======= //
+    m_hGeoParams["oRadPLYWheel"]  = 15.  *cm;
+    m_hGeoParams["iRadPLYWheel"]  =  0.  *cm;
+    m_hGeoParams["zPLYWheel"]     =  1.5 *cm;
+
+    // ======= PLY Blocks ======= //
+    m_hGeoParams["xPLYBlock"] =  5. *cm;
+    m_hGeoParams["yPLYBlock"] = 20. *cm;
+    m_hGeoParams["zPLYBlock"] = 10. *cm;
+
     // ======= Source Shield ======= //
     m_hGeoParams["oRadSourceShield"] = 3.35 *cm;
     m_hGeoParams["iRadSourceShield"] = 2.85 *cm;
-    m_hGeoParams["zSourceShield"]    = 5.2  *cm;
-    m_hGeoParams["zPlug"]            = 0.85 *cm;
+    m_hGeoParams["zSourceShield"]    = 10.2 *cm;
+    m_hGeoParams["zPlug"]            = 1.7  *cm;
 
-    // ======= Cubes ======= //
-    m_hGeoParams["xCube"] = 1. *cm;
-    m_hGeoParams["yCube"] = 1. *cm;
-    m_hGeoParams["zCube"] = 1. *cm;
+    // ======= Crystals ======= //
+    m_hGeoParams["xCrystal"] = 1. *cm;
+    m_hGeoParams["yCrystal"] = 1. *cm;
+    m_hGeoParams["zCrystal"] = 1. *cm;
 
-    m_hGeoParams["RadCubeSource"] = 10. *cm;
+    m_hGeoParams["RadCrystalSource"] = 10. *cm;
 };
 
 void MyDetectorConstruction::DefineMaterials() {
@@ -86,7 +106,7 @@ void MyDetectorConstruction::DefineMaterials() {
 
 void MyDetectorConstruction::ConstructLab() {
     
-    // **** Build World ****************************************************
+    // **** Build World **** //
     G4double xWorld = m_hGeoParams["xWorld"];
     G4double yWorld = m_hGeoParams["yWorld"];
     G4double zWorld = m_hGeoParams["zWorld"];
@@ -118,7 +138,7 @@ void MyDetectorConstruction::ConstructLab() {
                                    true
                                 );
 
-    // **** Build Floor ****************************************************
+    // **** Build Floor **** //
     G4double xFloor = xWorld;
     G4double yFloor = yWorld;
     G4double zFloor = m_hGeoParams["zFloor"];
@@ -160,655 +180,506 @@ void MyDetectorConstruction::ConstructLab() {
 
 void MyDetectorConstruction::ConstructFrame() {
 
-    
+    G4double zWorld = m_hGeoParams["zWorld"];
+    G4double zFloor = m_hGeoParams["zFloor"];
+
+    G4double xProfile     = m_hGeoParams["xProfile"];
+    G4double yProfile     = m_hGeoParams["yProfile"];
+    G4double zProfileLong = m_hGeoParams["zProfileLong"];
+    G4double zProfileShort= m_hGeoParams["zProfileShort"];
+
+
+    G4Box *solidProfileLong = new G4Box("solidProfileLong",
+                                       m_hGeoParams["xProfile"]/2,
+                                       m_hGeoParams["yProfile"]/2,
+                                       m_hGeoParams["zProfileLong"]/2
+                                    );
+
+    G4Box *solidProfileShort = new G4Box("solidProfileShort",
+                                       m_hGeoParams["xProfile"]/2,
+                                       m_hGeoParams["yProfile"]/2,
+                                       m_hGeoParams["zProfileShort"]/2
+                                    );
+
+    // Add Leg1
+    G4double xTemp1 = xProfile/2 + zProfileShort/2; 
+    G4double yTemp1 = 0. *cm;
+    G4double zTemp1 = -zProfileLong/2 + xProfile/2;
+    auto vecTemp1 = G4ThreeVector(xTemp1, yTemp1, zTemp1);
+    G4RotationMatrix* rotTemp1 = new G4RotationMatrix;
+    rotTemp1->rotateY(90*deg);
+
+    G4VSolid *solidTemp1 = new G4UnionSolid("Temp1",
+                                            solidProfileLong,
+                                            solidProfileShort,
+                                            rotTemp1,
+                                            vecTemp1
+                                        );
+
+    // Add Leg2
+    G4double xTemp2 = -(xProfile/2 + zProfileShort/2); 
+    G4double yTemp2 = 0. *cm;
+    G4double zTemp2 = -zProfileLong/2 + xProfile/2;
+    auto vecTemp2 = G4ThreeVector(xTemp2, yTemp2, zTemp2);
+    G4RotationMatrix* rotTemp2 = new G4RotationMatrix;
+    rotTemp2->rotateY(90*deg);
+
+    G4VSolid *solidTemp2 = new G4UnionSolid("Temp2",
+                                            solidTemp1,
+                                            solidProfileShort,
+                                            rotTemp2,
+                                            vecTemp2
+                                        );
+
+    // Add Leg3
+    G4double xTemp3 = 0. *cm; 
+    G4double yTemp3 = xProfile/2 + zProfileShort/2;
+    G4double zTemp3 = -zProfileLong/2 + xProfile/2;
+    auto vecTemp3 = G4ThreeVector(xTemp3, yTemp3, zTemp3);
+    G4RotationMatrix* rotTemp3 = new G4RotationMatrix;
+    rotTemp3->rotateX(90*deg);
+
+    G4VSolid *solidTemp3 = new G4UnionSolid("Temp3",
+                                            solidTemp2,
+                                            solidProfileShort,
+                                            rotTemp3,
+                                            vecTemp3
+                                        );
+
+    // Add Leg4
+    G4double xTemp4 = 0. *cm; 
+    G4double yTemp4 = -(xProfile/2 + zProfileShort/2);
+    G4double zTemp4 = -zProfileLong/2 + xProfile/2;
+    auto vecTemp4 = G4ThreeVector(xTemp4, yTemp4, zTemp4);
+    G4RotationMatrix* rotTemp4 = new G4RotationMatrix;
+    rotTemp4->rotateX(90*deg);
+
+    solidFrame = new G4UnionSolid("solidFrame",
+                                  solidTemp3,
+                                  solidProfileShort,
+                                  rotTemp4,
+                                  vecTemp4
+                                );
+
+    logicFrame = new G4LogicalVolume(solidFrame,
+                                     Al,
+                                     "logicFrame"
+                                    );
+
+    G4double zFramePos = -zWorld/2 + zFloor + zProfileLong/2;
+    auto vecFrame = G4ThreeVector(0., 0., zFramePos);
+    G4PVPlacement *physFrame = new G4PVPlacement(0,
+                                                 vecFrame,
+                                                 logicFrame,
+                                                 "physFrame",
+                                                 logicWorld,
+                                                 false,
+                                                 0,
+                                                 true
+                                                 );
+
+    /* Colours & Styling */
+    auto colFrame = G4Colour(0., 0.8, 1.);
+    G4VisAttributes *visAttributesFrame = new G4VisAttributes(colFrame);
+    visAttributesFrame->SetVisibility(true);
+    visAttributesFrame->SetForceSolid(true);
+    logicFrame->SetVisAttributes(visAttributesFrame);
+};
+
+void MyDetectorConstruction::ConstructWheel() {
+
+    G4double oRadWheel = m_hGeoParams["oRadWheel"];
+    G4double iRadWheel = m_hGeoParams["iRadWheel"];
+    G4double zWheel    = m_hGeoParams["zWheel"];
+
+    G4double wSpoke    = m_hGeoParams["wSpoke"];
+    G4double zPaper    = m_hGeoParams["zPaper"];
+
+    G4double zWorld = m_hGeoParams["zWorld"];
+    G4double zFloor = m_hGeoParams["zFloor"];
+    G4double zProfileLong = m_hGeoParams["zProfileLong"];
+
+
+
+    G4Tubs *solidRim = new G4Tubs("solidRim",
+                                  iRadWheel,
+                                  oRadWheel,
+                                  zWheel/2,
+                                  0,
+                                  360 *deg
+                            );
+
+    G4Tubs *solidPaper = new G4Tubs("solidPaper",
+                                    0.,
+                                    oRadWheel,
+                                    zPaper/2,
+                                    0.,
+                                    360* deg
+                                );
+
+    G4Box *solidSpoke = new G4Box("solidSpoke",
+                                   iRadWheel + 0.1*cm,
+                                   wSpoke/2,
+                                   zWheel/2
+                                );
+
+    G4UnionSolid *solidTemp1 = new G4UnionSolid("Temp1",
+                                solidRim,
+                                solidSpoke,
+                                0,
+                                G4ThreeVector(0,0,0)
+                                );
+
+    G4RotationMatrix* rotZ = new G4RotationMatrix;
+    rotZ->rotateZ(90*deg);
+
+    G4UnionSolid *solidTemp2 = new G4UnionSolid("Temp2",
+                                solidTemp1,
+                                solidSpoke,
+                                rotZ, 
+                                G4ThreeVector(0,0,0)
+                                );
+
+    G4UnionSolid *solidWheel = new G4UnionSolid("solidWheel",
+                                solidTemp2,
+                                solidPaper,
+                                nullptr,
+                                G4ThreeVector(0., 0., zWheel/2+zPaper/2)
+                                );
+
+    logicWheel = new G4LogicalVolume(solidWheel,
+                                     Al,
+                                     "logicWheel"
+                                    );
+
+    G4double zWheelPos = -zWorld/2
+                        + zFloor
+                        + zProfileLong
+                        + zWheel/2
+                        + zPaper/2;
+    auto vecWheel = G4ThreeVector(0., 0., zWheelPos);        
+
+    G4RotationMatrix* rotZ45 = new G4RotationMatrix;
+    rotZ45->rotateZ(45*deg);
+    physWheel = new G4PVPlacement(rotZ45,
+                                  vecWheel,
+                                  logicWheel,
+                                  "logicWheel",
+                                  logicWorld,
+                                  false,
+                                  0,
+                                  true
+                                ); 
+
+    /* Colours & Styling */
+    auto colWheel = G4Colour(0.7, 0.7, 0.7);
+    G4VisAttributes *visAttributesWheel = new G4VisAttributes(colWheel);
+    visAttributesWheel->SetVisibility(true);
+    visAttributesWheel->SetForceSolid(true);
+    logicWheel->SetVisAttributes(visAttributesWheel);
 
 }
 
-G4VPhysicalVolume *MyDetectorConstruction::Construct() {
+void MyDetectorConstruction::ConstructPLYWheel() {
+
+    G4double oRadPLYWheel = m_hGeoParams["oRadPLYWheel"];
+    G4double iRadPLYWheel = m_hGeoParams["iRadPLYWheel"];
+    G4double zPLYWheel    = m_hGeoParams["zPLYWheel"];
+
+    G4double zProfileLong = m_hGeoParams["zProfileLong"];
+    G4double zFloor       = m_hGeoParams["zFloor"];
+    G4double zWorld       = m_hGeoParams["zWorld"];
+
+    solidPLYWheel = new G4Tubs("solidPLYWheel",
+                                iRadPLYWheel,
+                                oRadPLYWheel,
+                                zPLYWheel/2,
+                                0,
+                                360*deg
+                               );
+
+    logicPLYWheel = new G4LogicalVolume(solidPLYWheel,
+                                         Polyethylene,
+                                         "logicPLYWheel"
+                                        );
+
+    G4double zPLYWheelPos = -zWorld/2 + zFloor + zProfileLong + zPLYWheel/2;
+    auto vecPLYWheel = G4ThreeVector(0., 0., zPLYWheelPos);
     
-    // **** Build World ****************************************************
-    G4double xWorld = 100.*cm;
-    G4double yWorld = 100.*cm;
-    G4double zWorld = 200.*cm;
+    physPLYWheel = new G4PVPlacement(0,
+                                      vecPLYWheel,
+                                      logicPLYWheel,
+                                      "physPLYWheel",
+                                      logicWorld,
+                                      false,
+                                      0,
+                                      true
+                                     );
 
-    G4double xWorldPos = 0.*cm;
-    G4double yWorldPos = 0.*cm;
-    G4double zWorldPos = 0.*cm;
-    
-    auto WorldVector = G4ThreeVector(xWorldPos, yWorldPos, zWorldPos);    
+    /* Colours & Styling */
+    auto colPLYWheel = G4Colour(1., 0.9, 0.9);
+    G4VisAttributes *visAttributesPLYWheel = new G4VisAttributes(colPLYWheel);
+    visAttributesPLYWheel->SetVisibility(true);
+    visAttributesPLYWheel->SetForceSolid(true);
+    logicPLYWheel->SetVisAttributes(visAttributesPLYWheel);
+}
 
-    solidWorld = new G4Box("solidWorld",
-                           xWorld/2,
-                           yWorld/2,
-                           zWorld/2
-                        ); 
+void MyDetectorConstruction::ConstructSourceShield() {
 
-    logicWorld = new G4LogicalVolume(solidWorld,
-                                    Air,
-                                    "logicWorld"
-                                );
+    G4double oRadSourceShield = m_hGeoParams["oRadSourceShield"];
+    G4double iRadSourceShield = m_hGeoParams["iRadSourceShield"];
+    G4double zSourceShield    = m_hGeoParams["zSourceShield"];
+    G4double zPlug            = m_hGeoParams["zPlug"];
 
-    physWorld  = new G4PVPlacement(0,
-                                   WorldVector,
+    G4double zPLYWheel    = m_hGeoParams["zPLYWheel"];
+    G4double zWheel       = m_hGeoParams["zWheel"];
+    G4double zPaper       = m_hGeoParams["zPaper"];
+    G4double zProfileLong = m_hGeoParams["zProfileLong"];
+    G4double zFloor       = m_hGeoParams["zFloor"];
+    G4double zWorld       = m_hGeoParams["zWorld"];
+
+    G4double zWheelEff;
+    if (usePLYWheel) {
+        zWheelEff = zPLYWheel;
+    } else {
+        zWheelEff = zWheel + zPaper;
+    }
+
+
+    G4Tubs *solidCylinder = new G4Tubs("solidCylinder",
+                                    iRadSourceShield,
+                                    oRadSourceShield,
+                                    zSourceShield/2,
+                                    0,
+                                    360*deg
+                                   );
+
+    G4Tubs *solidPlug = new G4Tubs("solidPlug",
+                                    0.,
+                                    iRadSourceShield + 0.1*cm,
+                                    zPlug/2,
+                                    0,
+                                    360*deg
+                                   );
+
+    auto vecTemp1 = G4ThreeVector(0., 0., (zSourceShield/2 - zPlug/2));
+    G4UnionSolid *solidTemp1 = new G4UnionSolid("Temp1",
+                                                    solidCylinder,
+                                                    solidPlug,
+                                                    0,
+                                                    vecTemp1
+                                                );
+
+    auto vecTemp2 = G4ThreeVector(0., 0., (-zSourceShield/2 + zPlug/2));
+    G4UnionSolid *solidSourceShield = new G4UnionSolid("Temp2",
+                                                    solidTemp1,
+                                                    solidPlug,
+                                                    0,
+                                                    vecTemp2
+                                                ); 
+                                    
+    logicSourceShield = new G4LogicalVolume(solidSourceShield,
+                                            Pb,
+                                            "logicSourceShield"
+                                        ); 
+
+    G4double zSourceShieldPos = -zWorld/2 
+                                + zFloor 
+                                + zProfileLong 
+                                + zWheelEff 
+                                + zSourceShield/2;
+    auto vecSourceShield = G4ThreeVector(0., 
+                                         0.,
+                                         zSourceShieldPos);
+    physSourceShield = new G4PVPlacement(0,
+                                   vecSourceShield,
+                                   logicSourceShield,
+                                   "physSourceShield",
                                    logicWorld,
-                                   "physWorld",
-                                   0,
                                    false,
                                    0,
                                    true
-                                ); 
-    // *********************************************************************
-
-
-    // **** Build Floor ****************************************************
-    G4double xFloor = xWorld;
-    G4double yFloor = yWorld;
-    G4double zFloor = 20.*cm;
-
-    G4double xFloorPos = 0.*cm;
-    G4double yFloorPos = 0.*cm;
-    G4double zFloorPos = (-zWorld/2 + zFloor/2);
-    
-    auto FloorVector = G4ThreeVector(xFloorPos, yFloorPos, zFloorPos);    
-
-    solidFloor = new G4Box("solidFloor",
-                           xFloor/2,
-                           yFloor/2,
-                           zFloor/2
-                        );
-
-    logicFloor = new G4LogicalVolume(solidFloor,
-                                    Concrete,
-                                    "logicFloor"
                                 );
 
-    physFloor  = new G4PVPlacement(0,
-                                   FloorVector,
-                                   logicFloor,
-                                   "physFloor",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true
-                                ); 
-    
     /* Colours & Styling */
-    auto colFloor = G4Colour(0.5, 0.5, 0.5);
-    G4VisAttributes *visAttributesFloor = new G4VisAttributes(colFloor);
-    visAttributesFloor->SetVisibility(true);
-    visAttributesFloor->SetForceSolid(true);
-    logicFloor->SetVisAttributes(visAttributesFloor);
-    // *********************************************************************
+    auto colSourceShield = G4Colour(1., 0., 0.);
+    G4VisAttributes *visAttributesSourceShield = new G4VisAttributes(
+                                                            colSourceShield);
+    visAttributesSourceShield->SetVisibility(true);
+    visAttributesSourceShield->SetForceSolid(true);
+    logicSourceShield->SetVisAttributes(visAttributesSourceShield);
 
+}
 
-    // **** Build Profile  *************************************************
-    G4double xProfile = 4. *cm;
-    G4double yProfile = 4. *cm;
-    G4double zProfile = 99.*cm;
+void MyDetectorConstruction::ConstructPLYBlocks(){
 
-    G4double xProfilePos = 0.*cm;
-    G4double yProfilePos = 0.*cm;
-    G4double zProfilePos = (-zWorld/2 + zFloor + zProfile/2);
-    
-    auto ProfileVector = G4ThreeVector(xProfilePos, yProfilePos, zProfilePos);    
+    G4double xPLYBlock = m_hGeoParams["xPLYBlock"];
+    G4double yPLYBlock = m_hGeoParams["yPLYBlock"];
+    G4double zPLYBlock = m_hGeoParams["zPLYBlock"];
 
-    solidProfile = new G4Box("solidProfile",
-                           xProfile/2,
-                           yProfile/2,
-                           zProfile/2); 
+    G4double zPLYWheel       = m_hGeoParams["zPLYWheel"];
+    G4double zProfileLong    = m_hGeoParams["zProfileLong"];
+    G4double zFloor          = m_hGeoParams["zFloor"];
+    G4double zWorld          = m_hGeoParams["zWorld"];
 
-    logicProfile = new G4LogicalVolume(solidProfile,
-                                    Al,
-                                    "logicProfile");
+    G4double oRadSourceShield = m_hGeoParams["oRadSourceShield"];
 
-    physProfile  = new G4PVPlacement(0,
-                                   ProfileVector,
-                                   logicProfile,
-                                   "physProfile",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); 
-    
+    solidPLYBlock = new G4Box("solidPLYBlock",
+                              xPLYBlock/2,
+                              yPLYBlock/2,
+                              zPLYBlock/2
+                             );
+
+    logicPLYBlock = new G4LogicalVolume(solidPLYBlock,
+                                        Polyethylene,
+                                        "logicPLYBlock"
+                                       );
+
+    G4double zPLYBlockPos = -zWorld/2 
+                            + zFloor 
+                            + zProfileLong 
+                            + zPLYWheel 
+                            + zPLYBlock/2;
+
+    // Place Block 1
+    G4double xPosPLYBlock1 = oRadSourceShield + xPLYBlock/2 + 0.1*cm;
+    G4double yPosPLYBlock1 = 0.*cm;
+    auto vecPLYBlock1 = G4ThreeVector(xPosPLYBlock1,
+                                      yPosPLYBlock1,
+                                      zPLYBlockPos);
+    physPLYBlock1 = new G4PVPlacement(0,
+                                      vecPLYBlock1,
+                                      logicPLYBlock,
+                                      "physPLYBlock1",
+                                      logicWorld,
+                                      false,
+                                      0,
+                                      true
+                                     );
+
+    // Place Block 2
+    G4double xPosPLYBlock2 = -oRadSourceShield - xPLYBlock/2 - 0.1*cm;
+    G4double yPosPLYBlock2 = 0.*cm;
+    auto vecPLYBlock2 = G4ThreeVector(xPosPLYBlock2,
+                                      yPosPLYBlock2,
+                                      zPLYBlockPos);
+    physPLYBlock2 = new G4PVPlacement(0,
+                                      vecPLYBlock2,
+                                      logicPLYBlock,
+                                      "physPLYBlock2",
+                                      logicWorld,
+                                      false,
+                                      1,
+                                      true
+                                     ); 
+
     /* Colours & Styling */
-    G4VisAttributes* visAttributesProfile = new G4VisAttributes(G4Colour(0.9, 0.9, 0.95));
-    visAttributesProfile->SetVisibility(true);
-    visAttributesProfile->SetForceSolid(true);
-    logicProfile->SetVisAttributes(visAttributesProfile);
+    auto colPLYBlock = G4Colour(1., 0.95, 0.95);
+    G4VisAttributes *visAttributesPLYBlock = new G4VisAttributes(colPLYBlock);
+    visAttributesPLYBlock->SetVisibility(true);
+    visAttributesPLYBlock->SetForceSolid(true);
+    visAttributesPLYBlock->SetForceAuxEdgeVisible(true); 
+    logicPLYBlock->SetVisAttributes(visAttributesPLYBlock);
 
-    // *********************************************************************
+}
 
+void MyDetectorConstruction::ConstructCrystals() {
 
-    // **** Build Legs *****************************************************
-    G4double xLeg = 15.*cm;
-    G4double yLeg = 2.*cm;
-    G4double zLeg = 2.*cm;
+    G4double xCrystal = m_hGeoParams["xCrystal"];
+    G4double yCrystal = m_hGeoParams["yCrystal"];
+    G4double zCrystal = m_hGeoParams["zCrystal"];
+    G4double RadCrystalSource = m_hGeoParams["RadCrystalSource"];
 
-    solidLeg = new G4Box("solidLeg",
-                           xLeg,
-                           yLeg,
-                           zLeg); 
+    G4double zPLYWheel    = m_hGeoParams["zPLYWheel"];
+    G4double zWheel       = m_hGeoParams["zWheel"];
+    G4double zPaper       = m_hGeoParams["zPaper"];
+    G4double zProfileLong = m_hGeoParams["zProfileLong"];
+    G4double zFloor       = m_hGeoParams["zFloor"];
+    G4double zWorld       = m_hGeoParams["zWorld"];
 
-    logicLeg = new G4LogicalVolume(solidLeg,
-                                    Al,
-                                    "logicLeg");
+    G4double zWheelEff;
+    if (usePLYWheel) {
+        zWheelEff = zPLYWheel;
+    } else {
+        zWheelEff = zWheel + zPaper;
+    }
 
-    G4double xLeg1Pos = xLeg + xProfile;
-    G4double yLeg1Pos = 0*cm;
-    G4double zLeg1Pos = (-zWorld + 2*zFloor + zLeg);
+    
+    solidCrystal = new G4Box("solidCrystal",
+                              xCrystal/2,
+                              yCrystal/2,
+                              zCrystal/2
+                             );
 
-    auto Leg1Vector = G4ThreeVector(xLeg1Pos, yLeg1Pos, zLeg1Pos);    
+    logicCrystal = new G4LogicalVolume(solidCrystal,
+                                        LiF,
+                                        "logicCrystal"
+                                       );
 
-    G4RotationMatrix *rot1 = new G4RotationMatrix();
-    rot1->rotateZ(0*deg);
- 
-    physLeg1  = new G4PVPlacement(rot1,
-                                   Leg1Vector,
-                                   logicLeg,
-                                   "physLeg1",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); 
- 
-    G4double xLeg2Pos = 0*cm;
-    G4double yLeg2Pos = xLeg + yProfile;
-    G4double zLeg2Pos = (-zWorld + 2*zFloor + zLeg);
+    G4double zCrystalPos = -zWorld/2
+                    + zFloor 
+                    + zProfileLong 
+                    + zWheelEff 
+                    + zCrystal/2;
+    auto vecCrystal0 = G4ThreeVector(RadCrystalSource, 0., zCrystalPos);
+    physCrystal0 = new G4PVPlacement(0,
+                                      vecCrystal0,
+                                      logicCrystal,
+                                      "physCrystal0",
+                                      logicWorld,
+                                      false,
+                                      0,
+                                      true
+                                     );
 
-    auto Leg2Vector = G4ThreeVector(xLeg2Pos, yLeg2Pos, zLeg2Pos);    
+    auto vecCrystal1 = G4ThreeVector(-RadCrystalSource, 0., zCrystalPos);
+    physCrystal1 = new G4PVPlacement(0,
+                                      vecCrystal1,
+                                      logicCrystal,
+                                      "physCrystal1",
+                                      logicWorld,
+                                      false,
+                                      1,
+                                      true
+                                     );
 
-    G4RotationMatrix *rot2 = new G4RotationMatrix();
-    rot2->rotateZ(90*deg);
+    auto vecCrystal2 = G4ThreeVector(0., RadCrystalSource, zCrystalPos);
+    physCrystal2 = new G4PVPlacement(0,
+                                      vecCrystal2,
+                                      logicCrystal,
+                                      "physCrystal2",
+                                      logicWorld,
+                                      false,
+                                      2,
+                                      true
+                                     );
 
-    physLeg2  = new G4PVPlacement(rot2,
-                                   Leg2Vector,
-                                   logicLeg,
-                                   "physLeg2",
-                                   logicWorld,
-                                   false,
-                                   1,
-                                   true); 
-  
-    G4double xLeg3Pos = -xLeg - xProfile;
-    G4double yLeg3Pos = 0*cm;
-    G4double zLeg3Pos = (-zWorld + 2*zFloor + zLeg);
-
-    auto Leg3Vector = G4ThreeVector(xLeg3Pos, yLeg3Pos, zLeg3Pos);    
-
-    G4RotationMatrix *rot3 = new G4RotationMatrix();
-    rot3->rotateZ(0*deg);
-
-    physLeg3  = new G4PVPlacement(rot3,
-                                   Leg3Vector,
-                                   logicLeg,
-                                   "physLeg3",
-                                   logicWorld,
-                                   false,
-                                   2,
-                                   true); 
-  
-    G4double xLeg4Pos = 0*cm;
-    G4double yLeg4Pos = -xLeg - yProfile;
-    G4double zLeg4Pos = (-zWorld + 2*zFloor + zLeg);
-
-    auto Leg4Vector = G4ThreeVector(xLeg4Pos, yLeg4Pos, zLeg4Pos);    
-
-    G4RotationMatrix *rot4 = new G4RotationMatrix();
-    rot4->rotateZ(90*deg);
-
-    physLeg4  = new G4PVPlacement(rot4,
-                                   Leg4Vector,
-                                   logicLeg,
-                                   "physLeg4",
-                                   logicWorld,
-                                   false,
-                                   3,
-                                   true); 
+    auto vecCrystal3 = G4ThreeVector(0., -RadCrystalSource, zCrystalPos);
+    physCrystal3 = new G4PVPlacement(0,
+                                      vecCrystal3,
+                                      logicCrystal,
+                                      "physCrystal3",
+                                      logicWorld,
+                                      false,
+                                      3,
+                                      true
+                                     );
         
     /* Colours & Styling */
-    G4VisAttributes* visAttributesLeg = new G4VisAttributes(G4Colour(0.92, 0.9, 0.85));
-    visAttributesLeg->SetVisibility(true);
-    visAttributesLeg->SetForceSolid(true);
-    logicLeg->SetVisAttributes(visAttributesLeg);
+    auto colCrystal = G4Colour(1., 1., 0.);
+    G4VisAttributes *visAttributesCrystal = new G4VisAttributes(colCrystal);
+    visAttributesCrystal->SetVisibility(true);
+    visAttributesCrystal->SetForceSolid(true);
+    visAttributesCrystal->SetForceAuxEdgeVisible(true); 
+    logicCrystal->SetVisAttributes(visAttributesCrystal);
+
+}
 
-    // *********************************************************************
-
-
-    // **** Build Rim ******************************************************
-    G4double InnerRadRim = 12.   *cm;
-    G4double OuterRadRim = 15.   *cm;
-    G4double HeightRim   =  0.05 *cm;
-
-    G4double xRimPos = 0.*cm;
-    G4double yRimPos = 0.*cm;
-    G4double zRimPos = (-zWorld + 2*zFloor + 2*zProfile + HeightRim);
-    
-    auto RimVector = G4ThreeVector(xRimPos, yRimPos, zRimPos);    
-
-    solidRim = new G4Tubs("solidRim",
-                           InnerRadRim,
-                           OuterRadRim,
-                           HeightRim,
-                           0.*deg,
-                           360.0*deg); 
-
-    logicRim = new G4LogicalVolume(solidRim,
-                                    Al,
-                                    "logicRim");
-
-    /*
-    physRim  = new G4PVPlacement(0,
-                                   RimVector,
-                                   logicRim,
-                                   "physRim",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); */
-    
-    /* Colours & Styling */
-    G4VisAttributes* visAttributesRim = new G4VisAttributes(G4Colour(0.9, 0.95, 0.85));
-    visAttributesRim->SetVisibility(true);
-    visAttributesRim->SetForceSolid(true);
-    logicRim->SetVisAttributes(visAttributesProfile);
-
-    // *********************************************************************
-
-
-    // **** Build Spine ****************************************************
-    G4double xSpine = InnerRadRim + 0.1*cm;
-    G4double ySpine = 2.*cm;
-    G4double zSpine = 0.05*cm;
-
-    G4double xSpinePos = 0.*cm;
-    G4double ySpinePos = 0.*cm;
-    G4double zSpinePos = (-zWorld + 2*zFloor + 2*zProfile + zSpine);
-    
-    auto SpineVector = G4ThreeVector(xSpinePos, ySpinePos, zSpinePos);    
-
-    solidSpine = new G4Box("solidSpine",
-                           xSpine,
-                           ySpine,
-                           zSpine); 
-
-    logicSpine = new G4LogicalVolume(solidSpine,
-                                    Al,
-                                    "logicSpine");
-    /*
-    physSpine  = new G4PVPlacement(0,
-                                   SpineVector,
-                                   logicSpine,
-                                   "physSpine",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); */
-    
-    /* Colours & Styling */
-    logicSpine->SetVisAttributes(visAttributesRim);
-
-    // *********************************************************************
-
-
-    // **** Build subSpines ************************************************
-    G4double xSubSpine = 2*cm;
-    G4double ySubSpine = 4.8*cm;
-    G4double zSubSpine = 0.05*cm;
-
-    solidSubSpine = new G4Box("solidSubSpine",
-                           xSubSpine,
-                           ySubSpine,
-                           zSubSpine); 
-
-    logicSubSpine = new G4LogicalVolume(solidSubSpine,
-                                    Al,
-                                    "logicSubSpine");
-
-    G4double xSubSpine1Pos = 0.*cm;
-    G4double ySubSpine1Pos = ySubSpine + ySpine;
-    G4double zSubSpine1Pos = (-zWorld + 2*zFloor + 2*zProfile + zSubSpine);
-    
-    auto SubSpineVector1 = G4ThreeVector(xSubSpine1Pos, ySubSpine1Pos, zSubSpine1Pos);    
-
-    /*
-    physSubSpine1  = new G4PVPlacement(0,
-                                   SubSpineVector1,
-                                   logicSubSpine,
-                                   "physSubSpine",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); 
- 
-    G4double xSubSpine2Pos = 0.*cm;
-    G4double ySubSpine2Pos = -ySubSpine - ySpine;
-    G4double zSubSpine2Pos = (-zWorld + 2*zFloor + 2*zProfile + zSubSpine);
-    
-    auto SubSpineVector2 = G4ThreeVector(xSubSpine2Pos, ySubSpine2Pos, zSubSpine2Pos);   */ 
-
-    /*
-    physSubSpine2  = new G4PVPlacement(0,
-                                   SubSpineVector2,
-                                   logicSubSpine,
-                                   "physSubSpine",
-                                   logicWorld,
-                                   false,
-                                   1,
-                                   true); */
-       
-    /* Colours & Styling */
-    logicSubSpine->SetVisAttributes(visAttributesRim);
-
-    // *********************************************************************
-
-    
-    // **** Build Wheel Union **********************************************
-    G4RotationMatrix* RotFlip = new G4RotationMatrix;
-    RotFlip->rotateZ(90*degree);
-
-    G4RotationMatrix* RotWheel = new G4RotationMatrix;
-    RotWheel->rotateZ(45*degree);
-
-    G4ThreeVector ZeroTrans(0., 0., 0.);
-    G4ThreeVector Trans(xSpinePos, ySpinePos, zSpinePos);
-    
-    G4UnionSolid* solidUnion1 = new G4UnionSolid("SolidRim+iSolidSpine1", 
-                                  solidRim, 
-                                  solidSpine,
-                                  0,
-                                  ZeroTrans
-                                  );
-
-    G4UnionSolid* solidWheel = new G4UnionSolid("Wheel", 
-                                  solidUnion1, 
-                                  solidSpine,
-                                  RotFlip,
-                                  ZeroTrans
-                                  );
-
-    G4LogicalVolume* logicWheel = new G4LogicalVolume(solidWheel,
-                                                        Al,
-                                                        "logicWheel"
-                                                        );
-
-    G4VPhysicalVolume *physWheel = new G4PVPlacement(RotWheel,
-                                                       RimVector,
-                                                        logicWheel,
-                                                        "physWheel",
-                                                        logicWorld,
-                                                        false,
-                                                        0,
-                                                        true);
-
-    /* Colours & Styling */
-    logicWheel->SetVisAttributes(visAttributesRim);
-    
-    // *********************************************************************
-
-    
-    // **** Build Paper ****************************************************
-
-    G4double paperThickness = 0.1*mm;
-    
-    G4Tubs* solidPaper = new G4Tubs("solidPaper",
-                                    0. *cm,
-                                    OuterRadRim,
-                                    (paperThickness/2) *mm,
-                                    0.   *deg,
-                                    360. *deg
-                                    );
-
-    G4LogicalVolume* logicPaper = new G4LogicalVolume(solidPaper,
-                                                      Paper,
-                                                      "logicPaper");
-    G4double xPaperPos = 0.*cm;
-    G4double yPaperPos = 0.*cm;
-    G4double zPaperPos = (zRimPos + HeightRim + (paperThickness/2)*mm);
-    
-    auto PaperVector = G4ThreeVector(xPaperPos, yPaperPos, zPaperPos);
-    G4VPhysicalVolume* physPaper = new G4PVPlacement(0,
-                                                      PaperVector,
-                                                        logicPaper,
-                                                        "physPaper",
-                                                        logicWorld,
-                                                        false,
-                                                        0,
-                                                        true);
-
-    /* Colours & Styling */
-    G4VisAttributes* visAttributesPaper = new G4VisAttributes(G4Colour(1., 1., 1., 1.));
-    visAttributesPaper->SetVisibility(true);
-    visAttributesPaper->SetForceSolid(true);
-    logicPaper->SetVisAttributes(visAttributesPaper);
-
-    // *********************************************************************
-
-    
-    // **** Build Cylinder *************************************************
-    G4double InnerRadCylinder = 1.68*cm;
-    G4double OuterRadCylinder = 3.35*cm;
-    G4double HeightCylinder   = 5.2*cm;
-
-    G4double xCylinderPos = 0.*cm;
-    G4double yCylinderPos = 0.*cm;
-    G4double zCylinderPos = (zPaperPos + paperThickness/2 + HeightCylinder);
-    //G4double zCylinderPos = (-zWorld + 2*zFloor + 2*zProfile + 2*HeightRim + HeightCylinder);
-    
-    auto CylinderVector = G4ThreeVector(xCylinderPos, yCylinderPos, zCylinderPos);    
-
-    solidCylinder = new G4Tubs("solidCylinder",
-                           InnerRadCylinder,
-                           OuterRadCylinder,
-                           HeightCylinder,
-                           0.*deg,
-                           360.0*deg); 
-
-    logicCylinder = new G4LogicalVolume(solidCylinder,
-                                    Pb,
-                                    "logicCylinder");
-
-    physCylinder  = new G4PVPlacement(0,
-                                   CylinderVector,
-                                   logicCylinder,
-                                   "physCylinder",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); 
-    
-    /* Colours & Styling */
-    G4VisAttributes* visAttributesCylinder = new G4VisAttributes(G4Colour(0.2, 0.1, 0.1, 0.9));
-    visAttributesCylinder->SetVisibility(true);
-    visAttributesCylinder->SetForceSolid(true);
-    logicCylinder->SetVisAttributes(visAttributesCylinder);
-
-    // *********************************************************************
-
-
-    // **** Build Plugs ** *************************************************
-    G4double InnerRadPlug = 0.*cm;
-    G4double OuterRadPlug = 1.68*cm;
-    G4double HeightPlug   = 0.85*cm;
-
-    solidPlug = new G4Tubs("solidPlug",
-                           InnerRadPlug,
-                           OuterRadPlug,
-                           HeightPlug,
-                           0.*deg,
-                           360.0*deg); 
-
-    logicPlug = new G4LogicalVolume(solidPlug,
-                                    Pb,
-                                    "logicPlug");
-
-    G4double xPlug1Pos = 0.*cm;
-    G4double yPlug1Pos = 0.*cm;
-    G4double zPlug1Pos = (zCylinderPos + HeightCylinder - HeightPlug);
-    
-    auto Plug1Vector = G4ThreeVector(xPlug1Pos, yPlug1Pos, zPlug1Pos);    
-
-    physPlug1  = new G4PVPlacement(0,
-                                   Plug1Vector,
-                                   logicPlug,
-                                   "physPlug1",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); 
- 
-    G4double xPlug2Pos = 0.*cm;
-    G4double yPlug2Pos = 0.*cm;
-    G4double zPlug2Pos = (zCylinderPos - HeightCylinder + HeightPlug);
-    
-    auto Plug2Vector = G4ThreeVector(xPlug2Pos, yPlug2Pos, zPlug2Pos);    
-
-    physPlug2  = new G4PVPlacement(0,
-                                   Plug2Vector,
-                                   logicPlug,
-                                   "physPlug2",
-                                   logicWorld,
-                                   false,
-                                   1,
-                                   true);    
-
-    /* Colours & Styling */
-    logicPlug->SetVisAttributes(visAttributesCylinder);
-
-    // *********************************************************************
-
-    
-    // **** Build Cubes ****************************************************
-    G4RotationMatrix* RotZ = new G4RotationMatrix;
-    RotZ->rotateZ(0*degree);
-
-    G4double radAway = 10 *cm;
-    
-    G4double xCube = 1. *cm;
-    G4double yCube = 1. *cm;
-    G4double zCube = 1. *cm;
-    
-    solidCube = new G4Box("solidCube",
-                           xCube/2,
-                           yCube/2,
-                           zCube/2); 
-
-    logicCube = new G4LogicalVolume(solidCube,
-                                    LiF,
-                                    "logicCube");
-    
-    G4double z = zPaperPos + paperThickness/2 + zCube/2 ;
-    
-    G4double x1 = radAway;
-    G4double y1 = 0. *cm;
-
-    auto vecCube1 = G4ThreeVector(x1, y1, z);    
-    physCube1 = new G4PVPlacement(RotZ,
-                                   vecCube1,
-                                   logicCube,
-                                   "physCube1",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true);
-
-    G4double x2 = 0.;
-    G4double y2 = radAway;
-
-    auto vecCube2 = G4ThreeVector(x2, y2, z);    
-    physCube2 = new G4PVPlacement(RotZ,
-                                   vecCube2,
-                                   logicCube,
-                                   "physCube2",
-                                   logicWorld,
-                                   false,
-                                   1,
-                                   true);
-
-
-    G4double x3 = -radAway;
-    G4double y3 = 0. *cm;
-
-    auto vecCube3 = G4ThreeVector(x3, y3, z);    
-    physCube3 = new G4PVPlacement(RotZ,
-                                   vecCube3,
-                                   logicCube,
-                                   "physCube3",
-                                   logicWorld,
-                                   false,
-                                   2,
-                                   true);
-
-    G4double x4 = 0 *cm;
-    G4double y4 = -radAway;
-
-    auto vecCube4 = G4ThreeVector(x4, y4, z);    
-    physCube4 = new G4PVPlacement(RotZ,
-                                   vecCube4,
-                                   logicCube,
-                                   "physCube4",
-                                   logicWorld,
-                                   false,
-                                   3,
-                                   true);
-    
-    /* Colours & Styling */
-    G4VisAttributes* visAttributesCube = new G4VisAttributes(G4Colour(1., 1., 0., 0.8));
-    visAttributesCube->SetVisibility(true);
-    visAttributesCube->SetForceSolid(true);
-    logicCube->SetVisAttributes(visAttributesCube);
-
-    // *********************************************************************
-
-
-    // **** Build Water ****************************************************
-    /*
-    G4RotationMatrix* RotZWater = new G4RotationMatrix;
-    RotZWater->rotateZ(45*degree);
-    
-    G4double xWater = 2 *cm;
-    G4double yWater = 2 *cm;
-    G4double zWater = 3.  *cm;
-
-    solidWater = new G4Box("solidWater",
-                           xWater,
-                           yWater,
-                           zWater); 
-
-    logicWater = new G4LogicalVolume(solidWater,
-                                    Water,
-                                    "logicWater");
-
-    G4double xWaterPos = 4.*cm;
-    G4double yWaterPos = 4.*cm;
-    G4double zWaterPos = zRimPos + HeightRim + zWater ;
-    
-    
-    auto WaterVector = G4ThreeVector(xWaterPos, yWaterPos, zWaterPos);    
-    physWater  = new G4PVPlacement(RotZWater,
-                                   WaterVector,
-                                   logicWater,
-                                   "physWater",
-                                   logicWorld,
-                                   false,
-                                   0,
-                                   true); */
-    
-    /* Colours & Styling */
-    /*
-    G4VisAttributes* visAttributesWater = new G4VisAttributes(G4Colour(0., 0., 1., 0.3));
-    visAttributesWater->SetVisibility(true);
-    visAttributesWater->SetForceSolid(true);
-    logicWater->SetVisAttributes(visAttributesWater); */
-
-    // *********************************************************************
-    
-    return physWorld;
-};
 
 void MyDetectorConstruction::ConstructSDandField(){
 
     MySensitiveDetector *sensDet = new MySensitiveDetector("SensitiveDetector");
-    logicCube->SetSensitiveDetector(sensDet);
+    logicCrystal->SetSensitiveDetector(sensDet);
 
 }
 
