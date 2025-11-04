@@ -12,7 +12,7 @@
 class MyPrimaryGenerator : public G4VUserPrimaryGeneratorAction{
     
     public:
-        MyPrimaryGenerator();
+    MyPrimaryGenerator(const G4String& outputPath = "./");
         ~MyPrimaryGenerator();
 
     virtual void GeneratePrimaries(G4Event*);
@@ -21,7 +21,9 @@ class MyPrimaryGenerator : public G4VUserPrimaryGeneratorAction{
         G4ParticleGun *fNeutronGun;
         G4ParticleGun *fGammaGun;
 
-        std::ofstream fOut;  // output CSV file
+    std::ofstream fOutNeutron;
+    std::ofstream fOutGamma;
+    G4String fOutputDirectory;
 };
 
 #endif

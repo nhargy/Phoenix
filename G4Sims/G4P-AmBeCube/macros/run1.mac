@@ -5,4 +5,4 @@
 /run/initialize
 
 # Run with basic geometry
-/run/beamOn 1000000
+/run/beamOn 100000

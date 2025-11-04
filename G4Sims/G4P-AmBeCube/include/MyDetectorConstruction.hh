@@ -24,14 +24,18 @@ using std::map;
 
 class MyDetectorConstruction : public G4VUserDetectorConstruction {
     public:
-        MyDetectorConstruction();
+    MyDetectorConstruction(const G4String& outputPath = "./");
         ~MyDetectorConstruction();
 
         virtual G4VPhysicalVolume *Construct(); 
 
     private:
 
-        static map<G4String, G4double> m_hGeoParams;
+    static map<G4String, G4double> m_hGeoParams;
+    G4String fOutputDirectory;
+
+    // Save geometry parameters to CSV (written to fOutputDirectory)
+    void SaveGeoParamsToCSV() const;
 
         G4bool usePLYWheel  = true;  // default
         G4bool usePLYBlocks = true;  // default

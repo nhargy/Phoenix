@@ -22,14 +22,14 @@ int main(int argc, char **argv) {
 
     G4RunManager* runManager = new G4RunManager();
     
-    runManager->SetUserInitialization(new MyDetectorConstruction());
-    runManager->SetUserInitialization(new MyPhysicsList());
-
     // Get output directory from command line if provided
     G4String outputDir = "./";
     if (argc > 2) {
         outputDir = argv[2];
     }
+
+    runManager->SetUserInitialization(new MyDetectorConstruction(outputDir));
+    runManager->SetUserInitialization(new MyPhysicsList());
 
     // Create action initialization with output directory
     auto actionInit = new MyActionInitialization(outputDir);

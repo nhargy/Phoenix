@@ -1,4 +1,6 @@
 #include "MyPrimaryGenerator.hh"
+#include "G4Event.hh"
+#include <string>
 
 #include "G4SystemOfUnits.hh"
 #include "G4ParticleTable.hh"
@@ -31,7 +33,7 @@ static SpectrumSampler makeAmBeSampler() {
   return SpectrumSampler(std::move(E), std::move(W));
 }
 
-MyPrimaryGenerator::MyPrimaryGenerator(){
+MyPrimaryGenerator::MyPrimaryGenerator(const G4String& outputPath) : fOutputDirectory(outputPath) {
 
     // Define neutron
     fNeutronGun = new G4ParticleGun(1);
@@ -51,42 +53,64 @@ MyPrimaryGenerator::MyPrimaryGenerator(){
 
     fGammaGun->SetParticlePosition(pos);
 
-    // Open CSV file and write header
-    fOut.open("generated_neutrons.csv");
-    fOut << "event_id,neutron_energy_MeV\n";
+  // Build file paths using the provided output directory. Assume outputPath is a directory.
+  std::string outDir = std::string(fOutputDirectory);
+  if (!outDir.empty() && outDir.back() != '/') outDir.push_back('/');
+  std::string neutronPath = outDir + "generated_neutrons.csv";
+  std::string gammaPath   = outDir + "generated_gammas.csv";
+
+  // Open CSV outputs
+  fOutNeutron.open(neutronPath);
+  fOutGamma.open(gammaPath);
+
+  // Include direction columns (dir_x, dir_y, dir_z) in addition to energy
+  fOutNeutron << "event_id,E_MeV,dir_x,dir_y,dir_z\n";
+  fOutGamma   << "event_id,E_MeV,dir_x,dir_y,dir_z\n";
 
 
 }
 
 MyPrimaryGenerator::~MyPrimaryGenerator(){
-    if (fOut.is_open()) fOut.close();
-    delete fNeutronGun;
-    delete fGammaGun;  
+  if (fOutNeutron.is_open()) fOutNeutron.close();
+  if (fOutGamma.is_open()) fOutGamma.close();
+  delete fNeutronGun;
+  delete fGammaGun;  
 }
 
 void MyPrimaryGenerator::GeneratePrimaries(G4Event* event){
 
     static SpectrumSampler sampler = makeAmBeSampler();
 
-    const double u = G4UniformRand();
-    const double ENeutron = sampler.sample(u);
-    // Save energy to CSV
-    fOut << ENeutron << "\n";
+  const double u = G4UniformRand();
+  const double ENeutron = sampler.sample(u);
 
     // Gamma energy
     G4double EGamma = 4.44 *MeV;
 
-    // Random isotropic direction
+    // Random isotropic directions
     G4ThreeVector vecNeutron = G4RandomDirection();
     G4ThreeVector vecGamma = G4RandomDirection();
 
+    // Fire neutron
     fNeutronGun->SetParticleMomentumDirection(vecNeutron);
     fNeutronGun->SetParticleEnergy(ENeutron *MeV);
     fNeutronGun->GeneratePrimaryVertex(event);
+
+    // Save neutron (event_id,E_MeV,dir_x,dir_y,dir_z)
+    G4int eventID = event->GetEventID();
+    if (fOutNeutron.is_open()) {
+        fOutNeutron << eventID << "," << ENeutron << ","
+                    << vecNeutron.x() << "," << vecNeutron.y() << "," << vecNeutron.z() << "\n";
+    }
    
-    if(G4UniformRand() < 0.6){
+   if(G4UniformRand() < 0.6){
         fGammaGun->SetParticleMomentumDirection(vecGamma);
         fGammaGun->SetParticleEnergy(EGamma);
         fGammaGun->GeneratePrimaryVertex(event);
+        // Save gamma (event_id,E_MeV,dir_x,dir_y,dir_z)
+        if (fOutGamma.is_open()) {
+            fOutGamma << eventID << "," << (EGamma/MeV) << ","
+                      << vecGamma.x() << "," << vecGamma.y() << "," << vecGamma.z() << "\n";
+        }
     }
 }

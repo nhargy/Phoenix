@@ -1,8 +1,10 @@
 #include "MyDetectorConstruction.hh"
+#include <fstream>
+#include <string>
 
 map<G4String, G4double> MyDetectorConstruction::m_hGeoParams;
 
-MyDetectorConstruction::MyDetectorConstruction() {
+MyDetectorConstruction::MyDetectorConstruction(const G4String& outputPath) : fOutputDirectory(outputPath) {
 };
 
 MyDetectorConstruction::~MyDetectorConstruction() {
@@ -78,7 +80,32 @@ void MyDetectorConstruction::DefineGeoParams() {
     m_hGeoParams["zCrystal"] = 1. *cm;
 
     m_hGeoParams["RadCrystalSource"] = 10. *cm;
+    // After parameters are defined, write them to CSV (if requested)
+    SaveGeoParamsToCSV();
 };
+
+void MyDetectorConstruction::SaveGeoParamsToCSV() const {
+    // Build path
+    std::string outDir = std::string(fOutputDirectory);
+    if (!outDir.empty() && outDir.back() != '/') outDir.push_back('/');
+    std::string filePath = outDir + "geo_params.csv";
+
+    std::ofstream fout(filePath);
+    if (!fout.is_open()) {
+        // Could optionally print a message to G4cout, but be quiet for now
+        return;
+    }
+
+    // Header
+    fout << "key,value\n";
+
+    for (const auto &kv : m_hGeoParams) {
+        // Write key and value (value in internal units, e.g. cm)
+        fout << kv.first << "," << kv.second << "\n";
+    }
+
+    fout.close();
+}
 
 void MyDetectorConstruction::DefineMaterials() {
 

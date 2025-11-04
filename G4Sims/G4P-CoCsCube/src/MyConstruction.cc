@@ -339,7 +339,7 @@ G4VPhysicalVolume *MyDetectorConstruction::Construct(){
                                 );
 
     physCube = new G4PVPlacement(0,
-                                 G4ThreeVector(CubeDistance*cm, 0., -20*cm + (2*holderHeight) + CubeSide*cm ),
+                                 G4ThreeVector(CubeDistance*cm, 0., -20*cm + (2*holderHeight) + CubeSide/2*cm ),
                                  logicCube,
                                  "logicCube",
                                  logicWorld,
