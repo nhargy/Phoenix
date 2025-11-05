@@ -241,6 +241,12 @@ def page_exposure(pdf,
 
     fig.suptitle(exposure, fontsize = 20)
 
+    coll  = collpath.name
+    phase = collpath.parent.name
+
+    subtitle = f"{phase} {coll}"
+    fig.text(0.5, 0.95, subtitle, ha="center", va="center", fontsize=14)
+
     gs = fig.add_gridspec(
         3, 1,
         left=0.12, right=0.88,
@@ -321,6 +327,8 @@ def page_exposure(pdf,
 # Create PDF
 pdf_path = "report1.pdf"
 
+lif_dirs = sorted(collpath.glob("LiF*"))
+
 with PdfPages(pdf_path) as pdf:
 
     page_title(pdf, collpath)
@@ -328,6 +336,6 @@ with PdfPages(pdf_path) as pdf:
     page_exposure(pdf, collpath, 'BL')
     page_exposure(pdf, collpath, 'AM')
     page_exposure(pdf, collpath, 'H2O')
-    page_exposure(pdf, collpath, 'LiF10_106')
-    page_exposure(pdf, collpath, 'LiF10_107')
-    page_exposure(pdf, collpath, 'LiF10_108')
+    # loop LiF folders
+    for lif_dir in sorted(collpath.glob("LiF*")):
+        page_exposure(pdf, collpath, lif_dir.name)
