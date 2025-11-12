@@ -31,17 +31,18 @@ class MyDetectorConstruction : public G4VUserDetectorConstruction {
 
     private:
 
-    static map<G4String, G4double> m_hGeoParams;
-    G4String fOutputDirectory;
+        static map<G4String, G4double> m_hGeoParams;
+        G4String fOutputDirectory;
 
-    // Save geometry parameters to CSV (written to fOutputDirectory)
-    void SaveGeoParamsToCSV() const;
+        // Save geometry parameters to CSV (written to fOutputDirectory)
+        void SaveGeoParamsToCSV() const;
 
         G4bool usePLYWheel  = true;  // default
         G4bool usePLYBlocks = true;  // default
 
         void DefineGeoParams();
         void DefineMaterials();
+
         void ConstructLab();
         void ConstructFrame();
         void ConstructWheel();
@@ -55,41 +56,42 @@ class MyDetectorConstruction : public G4VUserDetectorConstruction {
         /* Messenger variables */
         G4GenericMessenger *fMessengerCube;
 
-        /* Declarations: Solid Volumes*/
-        G4Box *solidWorld,
-              *solidFloor,
-              *solidCrystal,
-              *solidPLYBlock;
+        /* Lab */
+        G4Box*             solid_Lab;
+        G4LogicalVolume*   logic_Lab;
+        G4VPhysicalVolume* phys_Lab;
 
-        G4Tubs *solidSourceShield,
-               *solidPLYWheel;
+        G4Box*             solid_Floor;
+        G4LogicalVolume*   logic_Floor;
+        G4VPhysicalVolume* phys_Floor;
 
-        G4VSolid *solidFrame,
-                 *solidWheel;
+        /* Frame */
+        G4LogicalVolume*   logic_Frame;
+        G4VPhysicalVolume* phys_Frame;
 
-        /* Declarations: Logical Volumes*/
-        G4LogicalVolume *logicWorld, 
-                        *logicFloor,
-                        *logicCrystal,
-                        *logicSourceShield,
-                        *logicFrame,
-                        *logicWheel,
-                        *logicPLYWheel,
-                        *logicPLYBlock;
+        /* Wheel */
+        G4LogicalVolume*   logic_Wheel;
+        G4VPhysicalVolume* phys_Wheel;
 
-        /* Declarations: Physical Volumes*/
-        G4VPhysicalVolume *physWorld, 
-                          *physFloor,
-                          *physSourceShield,
-                          *physFrame,
-                          *physWheel,
-                          *physPLYWheel,
-                          *physPLYBlock1,
-                          *physPLYBlock2,
-                          *physCrystal0,
-                          *physCrystal1,
-                          *physCrystal2,
-                          *physCrystal3;
+        /* PLYWheel */
+        G4LogicalVolume*   logic_PLYWheel;
+        G4VPhysicalVolume* phys_PLYWheel;
+
+        /* SourceShield */
+        G4LogicalVolume*   logic_SourceShield;
+        G4VPhysicalVolume* phys_SourceShield;
+
+        /* PLYBlocks */
+        G4LogicalVolume*   logic_PLYBlock;
+        G4VPhysicalVolume* phys_PLYBlock0;
+        G4VPhysicalVolume* phys_PLYBlock1;
+
+        /* Crystals */
+        G4LogicalVolume*   logic_Crystal;
+        G4VPhysicalVolume* phys_Crystal0;
+        G4VPhysicalVolume* phys_Crystal1;
+        G4VPhysicalVolume* phys_Crystal2;
+        G4VPhysicalVolume* phys_Crystal3;
 
         // Material definitions
         G4Element *C,

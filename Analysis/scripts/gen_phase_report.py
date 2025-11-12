@@ -66,7 +66,7 @@ mpl.rcParams.update({
 
 
 # --------------- CONFIG -----------------------------------------------------
-pdf_path = "report1.pdf"
+pdf_path = "report2.pdf"
 phasepath = Path(sys.argv[1])
 A4       = (8.27, 11.69)
 E_photon = 2.786 #eV

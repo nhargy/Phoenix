@@ -1,19 +1,13 @@
 import numpy as np
 from numpy import ndarray
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 import pandas as pd
-import json
 from matplotlib.backends.backend_pdf import PdfPages
 from datetime import datetime
 import sys
-import os
 from pathlib import Path
 
-
-import Analysis.config.config          as cfg
-from   Analysis.utils              import G4Tools, XTools, SigTools
-from   Analysis.models.PDGParticle import PDGParticle_dict
+from Analysis.utils import SigTools
 
 import matplotlib as mpl
 from cycler import cycler
@@ -59,31 +53,32 @@ mpl.rcParams.update({
     "ytick.minor.size": 2,
 
     # Figure
-    "figure.dpi": 150,
-    "savefig.dpi": 300,
+    "figure.dpi": 180,
+    "savefig.dpi": 340,
     "savefig.facecolor": "white",
 
 })
 
 
 # --------------- CONFIG -----------------------------------------------------
-pdf_path = "report1.pdf"
+pdf_path = "report_phase4.pdf"
 phasepath = Path(sys.argv[1])
-#collpath = Path(sys.argv[1])
-A4       = (8.27, 11.69)
-E_photon = 2.786 #eV
-eV_to_J  = 1.602e-19
-photons_per_mW = (1e-3) / (E_photon * eV_to_J)
+A4 = (8.27, 11.69)
 
 # --------------- AUX FUNCTIONS ----------------------------------------------
+
+
+# --------------- PROCESS/READ DATA ------------------------------------------
+
 
 
 # --------------- PAGE FUNCTIONS ---------------------------------------------
 
 def page_title(pdf, 
-               collpath: Path, 
-               A4      : tuple[float ,float] = (8.27, 11.69),
-               desc    : str = " "
+               title    : str,
+               subtitle : str = " ",
+               desc     : str = " ",
+               A4       : tuple[float ,float] = (8.27, 11.69)
                ) -> None:
     """
     
@@ -91,11 +86,8 @@ def page_title(pdf,
     fig = plt.figure(figsize=A4)
     plt.axis("off")
 
-    coll  = collpath.name
-    phase = collpath.parent.name
-
-    title = f"Report: {phase} {coll}"
-    subtitle = "Project Phoenix"
+    title = title
+    subtitle = subtitle
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     fig.text(0.5, 0.85, title, ha="center", va="center", fontsize=26, weight="bold")
@@ -114,27 +106,26 @@ def page_title(pdf,
 
 
 def page_acquisition(pdf,
-                     collpath : Path
+                     data : dict,
+                     unwanted_keys : list = ['Date and Time', 
+                                             'Exposure Time (secs)', 
+                                             'SR193i']
                      ) -> None:
     """
     
     """
-    # ==================== #
-    # === Extract Data === #
-    # ==================== #
-
-    # Acqusition data dataframe
-    filepath = collpath / 'BL' / 'it_0.txt'
-    acq_dict = SigTools.read_acquisition_data(filepath)
-
-    unwanted_keys = ['Date and Time', 'Exposure Time (secs)', 'SR193i']
+    # Remove unwanted keys
     for unwanted_key in unwanted_keys:
-        acq_dict.pop(unwanted_key)
+        data.pop(unwanted_key)
+
+    # Depending on temperature stability, we have two possible key values
     try:
-        acq_dict.pop('Temperature (C)')
+        data.pop('Temperature (C)')
     except:
-        acq_dict.pop('Unstabilized Temperature (C)')
-    acq_df = pd.DataFrame(list(acq_dict.items()), columns=[" ", "Value"])
+        data.pop('Unstabilized Temperature (C)')
+
+    # Produce the data DataFrame
+    data_df = pd.DataFrame(list(data.items()), columns=[" ", "Value"])
 
     # Temperature timeline
     times, temps, cuts = SigTools.get_coll_temp_timeline(collpath)
@@ -160,8 +151,8 @@ def page_acquisition(pdf,
     # ============ #
     ax1.axis("off")
     tbl = ax1.table(
-        cellText=acq_df.values,
-        colLabels=acq_df.columns,
+        cellText=data_df.values,
+        colLabels=data_df.columns,
         loc="center",
         cellLoc="left",
     )
@@ -475,14 +466,20 @@ with PdfPages(pdf_path) as pdf:
 
         collpath = phasepath / coll
 
+        coll  = collpath.name
+        phase = collpath.parent.name
+
         power_path = collpath / 'power.txt'
         with open(power_path) as f:
             lines = f.readlines()
 
             power = float(lines[1].split(',')[1].strip())
 
-        page_title(pdf, collpath, desc = f'Exposures: {keys}')
-        page_acquisition(pdf, collpath)
+        page_title(pdf, f"{coll}, {phase}", desc = f'Exposures: {keys}')
+
+        filepath = collpath / 'BL' / 'it_0.txt'
+        acq_data = SigTools.read_acquisition_data(filepath)
+        page_acquisition(pdf, acq_data)
 
         arr_dict = {}
         for key in keys:
@@ -499,7 +496,7 @@ with PdfPages(pdf_path) as pdf:
 
         dict_arr.append(arr_dict)
 
-    page_title(pdf, phasepath, desc = f'Exposures: {keys}')
+    page_title(pdf, f"{phase}", desc = f'Exposures: {keys}')
 
     for key in keys[3:]:
         page_diff(pdf, dict_arr, key)
